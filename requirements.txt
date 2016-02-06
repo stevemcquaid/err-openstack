@@ -1,0 +1,8 @@
+python-novaclient==2.31.0
+errbot
+coverage
+pyopenssl
+ndg-httpsclient
+pyasn1
+common==0.1.1
+json

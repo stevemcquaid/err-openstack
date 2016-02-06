@@ -1,0 +1,37 @@
+.venv
+*.pyc
+/.idea
+/atlassian-ide-plugin.xml
+/.settings
+nohup.out
+/build
+/dist
+/errbot.egg-info*
+/config-*.egg
+/docs/_build
+/docs/_gh-pages
+/docs/errbot.rst
+/docs/errbot.*.rst
+/.cache
+/.coverage
+/data
+*.egg*
+
+# tools
+/tools/Home.md
+/tools/token
+
+*.log
+*.crt
+
+# OS X
+.DS_Store
+
+# legacy stuff
+legacy/dist/
+legacy/err.egg-info/
+
+# Secret Files
+ansible.cfg
+chatops_env.config
+hosts

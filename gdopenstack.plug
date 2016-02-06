@@ -1,0 +1,9 @@
+[Core]
+Name = GDOpenstack
+Module = gdopenstack
+
+[Documentation]
+Description = Basic Openstack module for GoDaddy
+
+[Python]
+Version = 2
