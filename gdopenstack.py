@@ -1,6 +1,7 @@
 from errbot import BotPlugin, botcmd
 from novaclient.client import Client
 import os
+import re
 import argparse
 import json
 
@@ -107,6 +108,33 @@ class GDOpenstack(BotPlugin):
             return self._format_network(server)
 
     @botcmd(split_args_with=None)
+    def nova_getmetadata(self, msg, args):
+        input = args.pop()
+        # @TODO: Need arg error handling here.
+
+        # Lets search by id
+        server = self._find_server_by_id(input)
+        if server:
+            self.log.info("FUCK: " + str(server.metadata))
+            return server.metadata
+
+        # Maybe input was a name...
+        servers = self._find_server_by_name(input)
+        if not servers:
+            return "Sorry, that server does not exist"
+
+        if servers > 1:
+            output = {}
+            for server in servers:
+                # @TODO This is somewhat undesirable. Add interactivity
+                self.log.info("FUCK: " + str(server.metadata))
+                output[server.id] = server.metadata
+            return str(output)
+        else:
+            # returned exactly 1 server
+            return self._format_network(server)
+
+    @botcmd(split_args_with=None)
     def nova_getcreator(self, msg, args):
         input = args.pop()
         # @TODO: Need arg error handling here.
@@ -133,7 +161,7 @@ class GDOpenstack(BotPlugin):
             return self._format_network(server)
 
     @botcmd(split_args_with=None)
-    def nova_getmetadata(self, msg, args):
+    def nova_getowners(self, msg, args):
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -141,7 +169,7 @@ class GDOpenstack(BotPlugin):
         server = self._find_server_by_id(input)
         if server:
             self.log.info("FUCK: " + str(server.metadata))
-            return server.metadata
+            return self._getowners(server.metadata)
 
         # Maybe input was a name...
         servers = self._find_server_by_name(input)
@@ -152,12 +180,29 @@ class GDOpenstack(BotPlugin):
             output = {}
             for server in servers:
                 # @TODO This is somewhat undesirable. Add interactivity
-                self.log.info("FUCK: " + str(server.metadata))
-                output[server.id] = server.metadata
+                output[server.id] = self._getowners(server.metadata)
             return str(output)
         else:
             # returned exactly 1 server
             return self._format_network(server)
+
+    def _getowners(self, metadata):
+        all_owners = [metadata['created_by'], metadata['sudo_users'], metadata['login_users'], metadata['sudo_groups'], metadata['login_groups'], metadata['sudo_groups']]
+        owners_list = []
+
+        # {u'sudo_users': u'DC1\\dbingham,DC1\\smcquaid', u'login_groups': u'DC1\\ac_devcloud,DC1\\su_devcloud', u'login_users': u'DC1\\dbingham,DC1\\jerobinson,DC1\\smcquaid', u'created_by': u'smcquaid', u'environment': u'DEV', u'sudo_groups': u'DC1\\su_devcloud', u'owning_group': u'26 - DEV-Private Cloud'}
+
+        for item in all_owners:
+            if item:
+                pattern = re.compile("^\s+|DC1\\\\|\s*,\s*|DC1\\\\|\s+$")
+                single_item_list = [x for x in pattern.split(item) if x]
+                for single_item in single_item_list:
+                    if single_item not in owners_list:
+                        owners_list.append(single_item)
+
+        self.log.info("INPUT: " + str(all_owners))
+        self.log.info("OUTPUT: " + str(owners_list))
+        return owners_list
 
 
     @botcmd(split_args_with=None)

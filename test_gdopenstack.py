@@ -53,10 +53,21 @@ class TestGDOpenstack(object):
 
 
     def test_getowners(self, testbot):
-        pass
-        # testbot.push_message('!nova getcreator smcquaid-dev1')
-        # response = testbot.pop_message()
-        # assert "smcquaid" in response
+        testbot.push_message('!nova getowners 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+        response = testbot.pop_message()
+        assert "smcquaid" in response
+        assert "dbingham" in response
+        assert "jerobinson" in response
+        assert "su_devcloud" in response
+        assert "ac_devcloud" in response
+
+        testbot.push_message('!nova getowners smcquaid-dev1')
+        response = testbot.pop_message()
+        assert "smcquaid" in response
+        assert "dbingham" in response
+        assert "jerobinson" in response
+        assert "su_devcloud" in response
+        assert "ac_devcloud" in response
 
     def test_getusers(self, testbot):
         pass
