@@ -1,8 +1,13 @@
 python-novaclient==2.31.0
 errbot
 coverage
+common==0.1.1
+
+# testing
+ipython
+pytest
+
+# For openssl errors
 pyopenssl
 ndg-httpsclient
 pyasn1
-common==0.1.1
-json

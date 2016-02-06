@@ -113,12 +113,12 @@ class GDOpenstack(BotPlugin):
         # @TODO: Need arg error handling here.
 
         # Lets search by id
-        server = self._find_server_by_id()
+        server = self._find_server_by_id(input)
         if server:
-            meta = json.loads(server.metadata)
+            return server.metadata['created_by']
 
         # Maybe input was a name...
-        servers = self._find_server_by_name()
+        servers = self._find_server_by_name(input)
         if not servers:
             return "Sorry, that server does not exist"
 
@@ -126,7 +126,7 @@ class GDOpenstack(BotPlugin):
             output = {}
             for server in servers:
                 # @TODO This is somewhat undesirable. Add interactivity
-                output[server.id] = self._format_network(server)
+                output[server.id] = server.metadata['created_by']
             return str(output)
         else:
             # returned exactly 1 server
