@@ -12,42 +12,45 @@ class TestGDOpenstack(object):
 
     def test_hello(self, testbot):
         testbot.push_message('!hello')
-        # testbot.log.info(response)
         assert 'Hello, gbin@localhost' in testbot.pop_message()
 
     def test_listservers(self, testbot):
         testbot.push_message('!nova listservers')
         response = str(testbot.pop_message())
-        # testbot.log.info(response)
         assert "smcquaid-dev1" in response
 
     def test_getip(self, testbot):
         testbot.push_message('!nova getip smcquaid-dev1')
         response = testbot.pop_message()
-        # testbot.log.info(response)
         assert "10.224.78.86" in response
 
         testbot.push_message('!nova getip 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         response = testbot.pop_message()
-        # testbot.log.info(response)
         assert "10.224.78.86" in response
 
     def test_getcreator(self, testbot):
         testbot.push_message('!nova getcreator 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         response = testbot.pop_message()
-        # testbot.log.info(response)
         assert "smcquaid" in response
 
         testbot.push_message('!nova getcreator smcquaid-dev1')
         response = testbot.pop_message()
-        # testbot.log.info(response)
         assert "smcquaid" in response
 
     def test_getmetadata(self, testbot):
-        pass
-        # testbot.push_message('!nova getmetadata smcquaid-dev1')
-        # response = testbot.pop_message()
-        # assert "10.224.78.86" in response
+        testbot.push_message('!nova getcreator 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+        response = testbot.pop_message()
+        assert "smcquaid" in response
+
+        testbot.push_message('!nova getmetadata smcquaid-dev1')
+        response = testbot.pop_message()
+        assert "smcquaid" in response
+        assert "26 - DEV-Private Cloud" in response
+        assert "login_groups" in response
+        assert "login_users" in response
+        assert "owning_group" in response
+        assert "smcquaid" in response
+
 
     def test_getowners(self, testbot):
         pass

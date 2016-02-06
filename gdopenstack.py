@@ -36,6 +36,8 @@ class GDOpenstack(BotPlugin):
         """Say hello to someone"""
         return "Hello, " + format(msg.frm)
 
+    # Helpers
+
     def _parse_args(self):
         pass
 
@@ -69,6 +71,7 @@ class GDOpenstack(BotPlugin):
 
         return Client(**credentials)
 
+    # Nova commands
     @botcmd(split_args_with=None)
     def nova_listservers(self, mess, args):
         """ This command gets all of the servers of a project """
@@ -104,10 +107,6 @@ class GDOpenstack(BotPlugin):
             return self._format_network(server)
 
     @botcmd(split_args_with=None)
-    def nova_forcedelete(self, msg, args):
-        pass
-
-    @botcmd(split_args_with=None)
     def nova_getcreator(self, msg, args):
         input = args.pop()
         # @TODO: Need arg error handling here.
@@ -115,6 +114,7 @@ class GDOpenstack(BotPlugin):
         # Lets search by id
         server = self._find_server_by_id(input)
         if server:
+            self.log.info(server.metadata)
             return server.metadata['created_by']
 
         # Maybe input was a name...
@@ -131,6 +131,39 @@ class GDOpenstack(BotPlugin):
         else:
             # returned exactly 1 server
             return self._format_network(server)
+
+    @botcmd(split_args_with=None)
+    def nova_getmetadata(self, msg, args):
+        input = args.pop()
+        # @TODO: Need arg error handling here.
+
+        # Lets search by id
+        server = self._find_server_by_id(input)
+        if server:
+            self.log.info("FUCK: " + str(server.metadata))
+            return server.metadata
+
+        # Maybe input was a name...
+        servers = self._find_server_by_name(input)
+        if not servers:
+            return "Sorry, that server does not exist"
+
+        if servers > 1:
+            output = {}
+            for server in servers:
+                # @TODO This is somewhat undesirable. Add interactivity
+                self.log.info("FUCK: " + str(server.metadata))
+                output[server.id] = server.metadata
+            return str(output)
+        else:
+            # returned exactly 1 server
+            return self._format_network(server)
+
+
+    @botcmd(split_args_with=None)
+    def nova_forcedelete(self, msg, args):
+        pass
+
 
     def callback_message(self, msg):
         if str(msg).find('cookie') != -1:
