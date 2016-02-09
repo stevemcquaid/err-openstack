@@ -6,7 +6,6 @@ from errbot.backends.test import testbot
 from novaclient.client import Client
 
 
-
 class TestGDOpenstack(object):
     extra_plugin_dir = '.'
 
@@ -14,12 +13,12 @@ class TestGDOpenstack(object):
         testbot.push_message('!hello')
         assert 'Hello, gbin@localhost' in testbot.pop_message()
 
-    def test_listservers(self, testbot):
+    def test_nova_listservers(self, testbot):
         testbot.push_message('!nova listservers')
-        response = str(testbot.pop_message())
+        response = testbot.pop_message()
         assert "smcquaid-dev1" in response
 
-    def test_getip(self, testbot):
+    def test_nova_getip(self, testbot):
         testbot.push_message('!nova getip smcquaid-dev1')
         response = testbot.pop_message()
         assert "10.224.78.86" in response
@@ -28,7 +27,7 @@ class TestGDOpenstack(object):
         response = testbot.pop_message()
         assert "10.224.78.86" in response
 
-    def test_getcreator(self, testbot):
+    def test_nova_getcreator(self, testbot):
         testbot.push_message('!nova getcreator 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         response = testbot.pop_message()
         assert "smcquaid" in response
@@ -37,8 +36,8 @@ class TestGDOpenstack(object):
         response = testbot.pop_message()
         assert "smcquaid" in response
 
-    def test_getmetadata(self, testbot):
-        testbot.push_message('!nova getcreator 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+    def test_nova_getmetadata(self, testbot):
+        testbot.push_message('!nova getmetadata 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         response = testbot.pop_message()
         assert "smcquaid" in response
 
@@ -52,8 +51,8 @@ class TestGDOpenstack(object):
         assert "smcquaid" in response
 
 
-    def test_getowners(self, testbot):
-        testbot.push_message('!nova getowners 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+    def test_nova_getusers(self, testbot):
+        testbot.push_message('!nova getusers 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         response = testbot.pop_message()
         assert "smcquaid" in response
         assert "dbingham" in response
@@ -61,7 +60,7 @@ class TestGDOpenstack(object):
         assert "su_devcloud" in response
         assert "ac_devcloud" in response
 
-        testbot.push_message('!nova getowners smcquaid-dev1')
+        testbot.push_message('!nova getusers smcquaid-dev1')
         response = testbot.pop_message()
         assert "smcquaid" in response
         assert "dbingham" in response
@@ -69,28 +68,65 @@ class TestGDOpenstack(object):
         assert "su_devcloud" in response
         assert "ac_devcloud" in response
 
-    def test_getusers(self, testbot):
+    def test_keystone_addadmintoproject(self, testbot):
+        # Get base state
+        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        response = testbot.pop_message()
+        assert "dxstarr" not in response
+
+        # Add User
+        testbot.push_message('!keystone addadmintoproject dxstarr user-smcquaid')
+        response = testbot.pop_message()
+        assert "Success" in response
+
+        # Check state
+        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        response = testbot.pop_message()
+        assert "dxstarr" in response
+
+        # Clean up
+        testbot.push_message('!keystone removeadminfromproject dxstarr user-smcquaid')
+        response = testbot.pop_message()
+        assert "Success" in response
+
+        # Check base state
+        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        response = testbot.pop_message()
+        assert "dxstarr" not in response
+
+    def test_keystone_listprojects(self, testbot):
+        testbot.push_message('!keystone listprojects')
+        response = testbot.pop_message()
+        assert "user-smcquaid" in response
+
+    def test_keystone_listroles(self, testbot):
+        testbot.push_message('!keystone listroles')
+        response = testbot.pop_message()
+        assert "Member" in response
+        assert "ProjectAdmin" in response
+
+    def test_keystone_listprojectusers(self, testbot):
+        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        response = testbot.pop_message()
+        assert "dxstarr" not in response
+        assert "smcquaid" in response
+
+    def test_keystone_removeadminfromproject(self, testbot):
         pass
-        # testbot.push_message('!getusers smcquaid-dev1')
+
+    def test_keystone_createproject(self, testbot):
+        pass
+
+    def test_nove_forcedelete(self, testbot):
+        pass
+        # testbot.push_message('!nova getip 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
         # response = testbot.pop_message()
-        # assert "smcquaid" in response
-        # NEED to add another user here
+        # assert "10.224.78.86" in response
 
+        # testbot.push_message('!nova forcedelete 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+        # response = testbot.pop_message()
+        # assert "Deleting..." in response
 
-
-
-
-
-# def get_nova_credentials_v2():
-#     d = {}
-#     d['version'] = '2'
-#     d['username'] = os.environ['OS_USERNAME']
-#     d['api_key'] = os.environ['OS_PASSWORD']
-#     d['auth_url'] = os.environ['OS_AUTH_URL']
-#     d['project_id'] = os.environ['OS_TENANT_NAME']
-#     return d
-
-# credentials = get_nova_credentials_v2()
-# nova_client = Client(**credentials)
-# print(nova_client.servers.list())
-# print(nova_client.fixed_ips.list())
+        # testbot.push_message('!nova getip 167bf8a4-ea62-4b8c-b31b-92d66a15d8e9')
+        # response = testbot.pop_message()
+        # assert "10.224.78.86" not in response

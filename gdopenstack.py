@@ -1,5 +1,6 @@
 from errbot import BotPlugin, botcmd
-from novaclient.client import Client
+from novaclient.client import Client as nclient
+from keystoneclient.v2_0.client import Client as ksclient
 import os
 import re
 import argparse
@@ -10,6 +11,7 @@ class GDOpenstack(BotPlugin):
     def activate(self):
         self.novaclient = None
         self.serverlist = None
+        self.tenantlist = None
 
         if self._refreshcache():
             super(GDOpenstack, self).activate()
@@ -23,10 +25,13 @@ class GDOpenstack(BotPlugin):
     def _refreshcache(self):
         # @TODO: Can send message that cache is refreshing if desired
         self.novaclient = self._get_nova_client()
+        self.keystoneclient = self._get_keystone_client();
         # Get a list of running servers.
         self.serverlist = \
             self.novaclient.servers.list(
                 search_opts=dict(all_tenants=True))
+
+        self.tenantlist = self.keystoneclient.tenants.list()
 
         # @TODO: Can send callback if desired
         # DEBUG: Cache refreshed
@@ -70,7 +75,17 @@ class GDOpenstack(BotPlugin):
         credentials['auth_url'] = os.environ['OS_AUTH_URL']
         credentials['project_id'] = os.environ['OS_TENANT_NAME']
 
-        return Client(**credentials)
+        return nclient(**credentials)
+
+    def _get_keystone_client(self):
+        """ This converts env vars to local vasr & auths with OS """
+        credentials = {}
+        credentials['username'] = os.environ['OS_USERNAME']
+        credentials['password'] = os.environ['OS_PASSWORD']
+        credentials['auth_url'] = os.environ['OS_AUTH_URL']
+        credentials['tenant_name'] = os.environ['OS_TENANT_NAME']
+
+        return ksclient(**credentials)
 
     # Nova commands
     @botcmd(split_args_with=None)
@@ -161,7 +176,7 @@ class GDOpenstack(BotPlugin):
             return self._format_network(server)
 
     @botcmd(split_args_with=None)
-    def nova_getowners(self, msg, args):
+    def nova_getusers(self, msg, args):
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -169,7 +184,7 @@ class GDOpenstack(BotPlugin):
         server = self._find_server_by_id(input)
         if server:
             self.log.info("FUCK: " + str(server.metadata))
-            return self._getowners(server.metadata)
+            return self._getusers(server.metadata)
 
         # Maybe input was a name...
         servers = self._find_server_by_name(input)
@@ -180,13 +195,13 @@ class GDOpenstack(BotPlugin):
             output = {}
             for server in servers:
                 # @TODO This is somewhat undesirable. Add interactivity
-                output[server.id] = self._getowners(server.metadata)
+                output[server.id] = self._getusers(server.metadata)
             return str(output)
         else:
             # returned exactly 1 server
             return self._format_network(server)
 
-    def _getowners(self, metadata):
+    def _getusers(self, metadata):
         all_owners = [metadata['created_by'], metadata['sudo_users'], metadata['login_users'], metadata['sudo_groups'], metadata['login_groups'], metadata['sudo_groups']]
         owners_list = []
 
@@ -204,10 +219,91 @@ class GDOpenstack(BotPlugin):
         self.log.info("OUTPUT: " + str(owners_list))
         return owners_list
 
+    def _find_user_by_name(self, user):
+        return user
+
+    def _find_tenant_by_name(self, name):
+        # Assuming tenant name is unique
+
+        for tentant in self.tenantlist:
+            if name == tentant.name:
+                return tentant.id
+
+        self.log.info("Tentant name: " + name + " was not found")
+        # TODO Throw error
+        return
+
+    def _get_admin_user_role_id(self):
+        return self._keystone_listroles().get('ProjectAdmin')
 
     @botcmd(split_args_with=None)
     def nova_forcedelete(self, msg, args):
-        pass
+        return "no"
+
+    def _keystone_listroles(self):
+        output = {}
+        rolelist = self.keystoneclient.roles.list()
+        for role in rolelist:
+            output[role.name] = role.id
+        return output
+
+    @botcmd(split_args_with=None)
+    def keystone_listroles(self, msg, args):
+        return self._keystone_listroles()
+
+
+    @botcmd(split_args_with=None)
+    def keystone_listprojects(self, msg, args):
+        output = {}
+        for proj in self.tenantlist:
+            output[proj.name] = proj.id
+
+        return output
+
+
+    @botcmd(split_args_with=None)
+    def keystone_listprojectusers(self, msg, args):
+        project_input = args.pop()
+
+        project_id = self._find_tenant_by_name(project_input)
+        return self.keystoneclient.tenants.list_users(project_id)
+
+
+    @botcmd(split_args_with=None)
+    def keystone_addadmintoproject(self, msg, args):
+        project_input = args.pop() # stack = LIFO = reverse param ordering
+        user_input = args.pop()
+
+
+        user_id = self._find_user_by_name(user_input)
+        project_id = self._find_tenant_by_name(project_input)
+        admin_id = self._get_admin_user_role_id()
+
+        # Add a user to a tenant with the given role.
+        self.keystoneclient.roles.add_user_role(tenant=project_id, user=user_id, role=admin_id)
+        return "Success"
+
+    @botcmd(split_args_with=None)
+    def keystone_removeadminfromproject(self, msg, args):
+        project_input = args.pop() # stack = LIFO = reverse param ordering
+        user_input = args.pop()
+
+        user_id = self._find_user_by_name(user_input)
+        project_id = self._find_tenant_by_name(project_input)
+        admin_id = self._get_admin_user_role_id()
+
+        # Remove a user from tenant with the given role.
+        self.keystoneclient.roles.remove_user_role(tenant=project_id, user=user_id, role=admin_id)
+        return "Success"
+
+
+    # @TODO - Complete this
+    @botcmd(split_args_with=None)
+    def keystone_createproject(self, msg, args):
+        project_name = args.pop()
+
+        # keystone.tenants.create(tenant_name="openstackDemo", description="Default Tenant", enabled=True)
+        return "Success"
 
 
     def callback_message(self, msg):
