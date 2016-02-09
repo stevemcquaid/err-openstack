@@ -70,27 +70,27 @@ class TestGDOpenstack(object):
 
     def test_keystone_addadmintoproject(self, testbot):
         # Get base state
-        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        testbot.push_message('!keystone listprojectusers dev-smcquaid')
         response = testbot.pop_message()
         assert "dxstarr" not in response
 
         # Add User
-        testbot.push_message('!keystone addadmintoproject dxstarr user-smcquaid')
-        response = testbot.pop_message()
+        testbot.push_message('!keystone addadmintoproject dxstarr dev-smcquaid')
+        response = testbot.pop_message(timeout=10)
         assert "Success" in response
 
         # Check state
-        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        testbot.push_message('!keystone listprojectusers dev-smcquaid')
         response = testbot.pop_message()
         assert "dxstarr" in response
 
         # Clean up
-        testbot.push_message('!keystone removeadminfromproject dxstarr user-smcquaid')
-        response = testbot.pop_message()
+        testbot.push_message('!keystone removeadminfromproject dxstarr dev-smcquaid')
+        response = testbot.pop_message(timeout=10)
         assert "Success" in response
 
         # Check base state
-        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        testbot.push_message('!keystone listprojectusers dev-smcquaid')
         response = testbot.pop_message()
         assert "dxstarr" not in response
 
@@ -106,15 +106,45 @@ class TestGDOpenstack(object):
         assert "ProjectAdmin" in response
 
     def test_keystone_listprojectusers(self, testbot):
-        testbot.push_message('!keystone listprojectusers user-smcquaid')
+        testbot.push_message('!keystone listprojectusers dev-smcquaid')
         response = testbot.pop_message()
         assert "dxstarr" not in response
         assert "smcquaid" in response
 
     def test_keystone_removeadminfromproject(self, testbot):
+        #Included as above
         pass
 
     def test_keystone_createproject(self, testbot):
+        pass
+
+    def test_nova_addadmintoserver(self, testbot):
+        # Get base state
+        testbot.push_message('!nova getusers smcquaid-dev1')
+        response = testbot.pop_message()
+        assert "dxstarr" not in response
+
+        # Add User
+        testbot.push_message('!nova addadmintoserver dxstarr smcquaid-dev1')
+        response = testbot.pop_message(timeout=10)
+        assert "Success" in response
+
+        # Check state
+        testbot.push_message('!nova getusers smcquaid-dev1')
+        response = testbot.pop_message()
+        assert "dxstarr" in response
+
+        # Clean up
+        testbot.push_message('!nova removeadminfromserver dxstarr smcquaid-dev1')
+        response = testbot.pop_message(timeout=10)
+        assert "Success" in response
+
+        # Check base state
+        testbot.push_message('!nova getusers smcquaid-dev1')
+        response = testbot.pop_message()
+        assert "dxstarr" not in response
+
+    def test_nova_removeadminfromserver(self, testbot):
         pass
 
     def test_nove_forcedelete(self, testbot):

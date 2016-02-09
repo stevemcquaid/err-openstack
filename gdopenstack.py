@@ -238,6 +238,8 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_forcedelete(self, msg, args):
+        # Do stuff here
+        self._refreshcache()
         return "no"
 
     def _keystone_listroles(self):
@@ -260,7 +262,6 @@ class GDOpenstack(BotPlugin):
 
         return output
 
-
     @botcmd(split_args_with=None)
     def keystone_listprojectusers(self, msg, args):
         project_input = args.pop()
@@ -281,6 +282,9 @@ class GDOpenstack(BotPlugin):
 
         # Add a user to a tenant with the given role.
         self.keystoneclient.roles.add_user_role(tenant=project_id, user=user_id, role=admin_id)
+
+        # We modified stuff so we need to refresh the cache
+        self._refreshcache()
         return "Success"
 
     @botcmd(split_args_with=None)
@@ -294,7 +298,81 @@ class GDOpenstack(BotPlugin):
 
         # Remove a user from tenant with the given role.
         self.keystoneclient.roles.remove_user_role(tenant=project_id, user=user_id, role=admin_id)
+        # We modified stuff so we need to refresh the cache
+        self._refreshcache()
         return "Success"
+
+    def _append_user_to_server_meta_item(self, server_obj, metadata_key, value_to_append):
+        item = server_obj.metadata.get(metadata_key)
+        item += ',DC1\\' + value_to_append
+        self.novaclient.servers.set_meta_item(server=server_obj, key=metadata_key, value=item)
+
+    @botcmd(split_args_with=None)
+    def nova_addadmintoserver(self, msg, args):
+        server_input = args.pop() # stack = LIFO = reverse param ordering
+        user_input = args.pop()
+        user_id = self._find_user_by_name(user_input)
+
+        # Lets search by id
+        server_obj = self._find_server_by_id(server_input)
+        if server_obj:
+            self._append_user_to_server_meta_item(server_obj=server_obj, metadata_key='login_users', value_to_append=user_id)
+            self._append_user_to_server_meta_item(server_obj=server_obj, metadata_key='sudo_users', value_to_append=user_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
+
+        # Maybe input was a name...
+        servers = self._find_server_by_name(server_input)
+        if not servers:
+            self.log.info("There is a problem here")
+            return "Sorry, that server does not exist"
+        if len(servers) > 1:
+            return "Sorry, there is more than one server with that name. Please use UUID"
+        if len(servers) == 1:
+            for server_obj in servers:
+                self._append_user_to_server_meta_item(server_obj=server_obj, metadata_key='login_users', value_to_append=user_id)
+                self._append_user_to_server_meta_item(server_obj=server_obj, metadata_key='sudo_users', value_to_append=user_id)
+                # We modified stuff so we need to refresh the cache
+                self._refreshcache()
+                return "Success"
+
+
+    def _remove_user_from_server_meta_item(self, server_obj, metadata_key, value_to_remove):
+        items = server_obj.metadata.get(metadata_key).split(",")
+        items.remove('DC1\\' + value_to_remove)
+        new_value = ",".join(items)
+        self.novaclient.servers.set_meta_item(server=server_obj, key=metadata_key, value=new_value)
+
+    @botcmd(split_args_with=None)
+    def nova_removeadminfromserver(self, msg, args):
+        server_input = args.pop() # stack = LIFO = reverse param ordering
+        user_input = args.pop()
+        user_id = self._find_user_by_name(user_input)
+
+        # Lets search by id
+        server_obj = self._find_server_by_id(server_input)
+        if server_obj:
+            self._remove_user_from_server_meta_item(server_obj=server_obj, metadata_key='login_users', value_to_remove=user_id)
+            self._remove_user_from_server_meta_item(server_obj=server_obj, metadata_key='sudo_users', value_to_remove=user_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
+
+        # Maybe input was a name...
+        servers = self._find_server_by_name(server_input)
+        if not servers:
+            self.log.info("There is a problem here")
+            return "Sorry, that server does not exist"
+        if len(servers) > 1:
+            return "Sorry, there is more than one server with that name. Please use UUID"
+        if len(servers) == 1:
+            for server_obj in servers:
+                self._remove_user_from_server_meta_item(server_obj=server_obj, metadata_key='login_users', value_to_remove=user_id)
+                self._remove_user_from_server_meta_item(server_obj=server_obj, metadata_key='sudo_users', value_to_remove=user_id)
+                # We modified stuff so we need to refresh the cache
+                self._refreshcache()
+                return "Success"
 
 
     # @TODO - Complete this
@@ -303,6 +381,9 @@ class GDOpenstack(BotPlugin):
         project_name = args.pop()
 
         # keystone.tenants.create(tenant_name="openstackDemo", description="Default Tenant", enabled=True)
+
+        # We modified stuff so we need to refresh the cache
+        self._refreshcache()
         return "Success"
 
 
