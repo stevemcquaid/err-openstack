@@ -19,7 +19,8 @@ class GDOpenstack(BotPlugin):
             self.log.error("Cache failed to load. Unable to load novaclient.")
 
     @botcmd(split_args_with=None)
-    def refreshcache(self, msg, args):
+    def openstack_refreshcache(self, msg, args):
+        """ Refreshes the nova & keystone clients and the server & tenant lists """
         return self._refreshcache()
 
     def _refreshcache(self):
@@ -39,7 +40,7 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def hello(self, msg, args):
-        """Say hello to someone"""
+        """ Say hello to someone """
         return "Hello, " + format(msg.frm)
 
     # Helpers
@@ -90,7 +91,9 @@ class GDOpenstack(BotPlugin):
     # Nova commands
     @botcmd(split_args_with=None)
     def nova_listservers(self, mess, args):
-        """ This command gets all of the servers of a project """
+        """ Gets all of the servers of loaded project EX: !nova listservers """
+        # @TODO add optional param to allow listing servers of a specific project.
+
         servers = self.novaclient.servers.list()
         serverlist = []
         for server in servers:
@@ -99,6 +102,8 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_getip(self, msg, args):
+        """ Returns the ip(s) of a server. EX: !nova getip <id|name> """
+
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -124,6 +129,7 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_getmetadata(self, msg, args):
+        """ Returns the metadata of a server. EX: !nova getmetadata <id|name> """
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -151,6 +157,7 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_getcreator(self, msg, args):
+        """ Gets creator of server from metadata. EX: !nova getcreator <id|name> """
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -177,6 +184,7 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_getusers(self, msg, args):
+        """ Gets list of all users/groups of server. EX: !nova getusers <id|name> """
         input = args.pop()
         # @TODO: Need arg error handling here.
 
@@ -205,8 +213,6 @@ class GDOpenstack(BotPlugin):
         all_owners = [metadata['created_by'], metadata['sudo_users'], metadata['login_users'], metadata['sudo_groups'], metadata['login_groups'], metadata['sudo_groups']]
         owners_list = []
 
-        # {u'sudo_users': u'DC1\\dbingham,DC1\\smcquaid', u'login_groups': u'DC1\\ac_devcloud,DC1\\su_devcloud', u'login_users': u'DC1\\dbingham,DC1\\jerobinson,DC1\\smcquaid', u'created_by': u'smcquaid', u'environment': u'DEV', u'sudo_groups': u'DC1\\su_devcloud', u'owning_group': u'26 - DEV-Private Cloud'}
-
         for item in all_owners:
             if item:
                 pattern = re.compile("^\s+|DC1\\\\|\s*,\s*|DC1\\\\|\s+$")
@@ -220,6 +226,7 @@ class GDOpenstack(BotPlugin):
         return owners_list
 
     def _find_user_by_name(self, user):
+        # @TODO - need to add validation here so the script quickly fails for invalid username
         return user
 
     def _find_tenant_by_name(self, name):
@@ -233,14 +240,25 @@ class GDOpenstack(BotPlugin):
         # TODO Throw error
         return
 
+    def _find_tenant_by_id(self, id):
+        for tentant in self.tenantlist:
+            if id == tentant.id:
+                return tentant.id
+
+        self.log.info("Tentant id: " + id + " was not found")
+        # TODO Throw error
+        return
+
     def _get_admin_user_role_id(self):
         return self._keystone_listroles().get('ProjectAdmin')
 
     @botcmd(split_args_with=None)
     def nova_forcedelete(self, msg, args):
+        """ Does nothing currently """
         # Do stuff here
-        self._refreshcache()
-        return "no"
+        # self._refreshcache()
+        # return "no"
+        pass
 
     def _keystone_listroles(self):
         output = {}
@@ -251,11 +269,13 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def keystone_listroles(self, msg, args):
+        """ Gets user-roles WRT proejct. EX: !keystone listroles """
         return self._keystone_listroles()
 
 
     @botcmd(split_args_with=None)
     def keystone_listprojects(self, msg, args):
+        """ Gets list of projects of current env. EX: !keystone listprojects """
         output = {}
         for proj in self.tenantlist:
             output[proj.name] = proj.id
@@ -264,56 +284,89 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def keystone_listprojectusers(self, msg, args):
+        """ Gets list of users of project. EX: !keystone listprojects <name>"""
         project_input = args.pop()
 
         project_id = self._find_tenant_by_name(project_input)
-        return self.keystoneclient.tenants.list_users(project_id)
+        if project_id:
+            return self.keystoneclient.tenants.list_users(project_id)
 
+        project_id = self._find_tenant_by_id(project_input)
+        if project_id:
+            return self.keystoneclient.tenants.list_users(project_id)
+
+        return "Not found"
 
     @botcmd(split_args_with=None)
     def keystone_addadmintoproject(self, msg, args):
+        """ Add user to project. EX: !keystone addadmintoproject <username> <projectname> """
         project_input = args.pop() # stack = LIFO = reverse param ordering
         user_input = args.pop()
 
-
         user_id = self._find_user_by_name(user_input)
-        project_id = self._find_tenant_by_name(project_input)
         admin_id = self._get_admin_user_role_id()
 
-        # Add a user to a tenant with the given role.
-        self.keystoneclient.roles.add_user_role(tenant=project_id, user=user_id, role=admin_id)
+        project_id = self._find_tenant_by_name(project_input)
+        if project_id:
+            # Add a user to a tenant with the given role.
+            self.keystoneclient.roles.add_user_role(tenant=project_id, user=user_id, role=admin_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
 
-        # We modified stuff so we need to refresh the cache
-        self._refreshcache()
-        return "Success"
+        project_id = self._find_tenant_by_id(project_input)
+        if project_id:
+            # Add a user to a tenant with the given role.
+            self.keystoneclient.roles.add_user_role(tenant=project_id, user=user_id, role=admin_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
+
+        return "Project not found"
+
 
     @botcmd(split_args_with=None)
     def keystone_removeadminfromproject(self, msg, args):
+        """ Remove user from project. EX: !keystone removeadminfromproject <username> <projectname> """
         project_input = args.pop() # stack = LIFO = reverse param ordering
         user_input = args.pop()
 
         user_id = self._find_user_by_name(user_input)
-        project_id = self._find_tenant_by_name(project_input)
         admin_id = self._get_admin_user_role_id()
 
-        # Remove a user from tenant with the given role.
-        self.keystoneclient.roles.remove_user_role(tenant=project_id, user=user_id, role=admin_id)
-        # We modified stuff so we need to refresh the cache
-        self._refreshcache()
-        return "Success"
+        project_id = self._find_tenant_by_name(project_input)
+        if project_id:
+            # Add a user to a tenant with the given role.
+            self.keystoneclient.roles.remove_user_role(tenant=project_id, user=user_id, role=admin_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
+
+        project_id = self._find_tenant_by_id(project_input)
+        if project_id:
+            # Add a user to a tenant with the given role.
+            self.keystoneclient.roles.remove_user_role(tenant=project_id, user=user_id, role=admin_id)
+            # We modified stuff so we need to refresh the cache
+            self._refreshcache()
+            return "Success"
+
+        return "Project not found."
 
     def _append_user_to_server_meta_item(self, server_obj, metadata_key, value_to_append):
         item = server_obj.metadata.get(metadata_key)
         item += ',DC1\\' + value_to_append
         self.novaclient.servers.set_meta_item(server=server_obj, key=metadata_key, value=item)
 
+
     @botcmd(split_args_with=None)
     def nova_addadmintoserver(self, msg, args):
+        """ Add user to server. EX: !nova addadmintoserver <username> <serverid|servername> """
         server_input = args.pop() # stack = LIFO = reverse param ordering
         user_input = args.pop()
+
         user_id = self._find_user_by_name(user_input)
 
-        # Lets search by id
+        # Lets search for server by id
         server_obj = self._find_server_by_id(server_input)
         if server_obj:
             self._append_user_to_server_meta_item(server_obj=server_obj, metadata_key='login_users', value_to_append=user_id)
@@ -322,7 +375,7 @@ class GDOpenstack(BotPlugin):
             self._refreshcache()
             return "Success"
 
-        # Maybe input was a name...
+        # Maybe server input was a name...
         servers = self._find_server_by_name(server_input)
         if not servers:
             self.log.info("There is a problem here")
@@ -346,6 +399,7 @@ class GDOpenstack(BotPlugin):
 
     @botcmd(split_args_with=None)
     def nova_removeadminfromserver(self, msg, args):
+        """ Remove user from server. EX: !nova removeadminfromserver <username> <serverid|servername> """
         server_input = args.pop() # stack = LIFO = reverse param ordering
         user_input = args.pop()
         user_id = self._find_user_by_name(user_input)
@@ -378,14 +432,23 @@ class GDOpenstack(BotPlugin):
     # @TODO - Complete this
     @botcmd(split_args_with=None)
     def keystone_createproject(self, msg, args):
-        project_name = args.pop()
+        """ Does nothing currently """
+        # project_name = args.pop()
 
         # keystone.tenants.create(tenant_name="openstackDemo", description="Default Tenant", enabled=True)
 
         # We modified stuff so we need to refresh the cache
-        self._refreshcache()
-        return "Success"
+        # self._refreshcache()
+        # return "Success"
+        pass
 
+    # @TODO - Complete this
+    @botcmd(split_args_with=None)
+    def ad_clearhostname(self, msg, args):
+        """ Does nothing currently """
+        # hostname = args.pop()
+        # TODO Clear ad hostname
+        pass
 
     def callback_message(self, msg):
         if str(msg).find('cookie') != -1:

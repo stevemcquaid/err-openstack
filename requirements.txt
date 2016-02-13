@@ -6,6 +6,8 @@ common==0.1.1
 # testing
 ipython
 pytest
+pytest-pep8
+coverage
 
 # For openssl errors
 pyopenssl

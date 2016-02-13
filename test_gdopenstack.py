@@ -78,10 +78,11 @@ class TestGDOpenstack(object):
         testbot.push_message('!keystone addadmintoproject dxstarr dev-smcquaid')
         response = testbot.pop_message(timeout=10)
         assert "Success" in response
+        # @TODO - need to use project ID for code coverage
 
         # Check state
         testbot.push_message('!keystone listprojectusers dev-smcquaid')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "dxstarr" in response
 
         # Clean up
@@ -91,17 +92,17 @@ class TestGDOpenstack(object):
 
         # Check base state
         testbot.push_message('!keystone listprojectusers dev-smcquaid')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "dxstarr" not in response
 
     def test_keystone_listprojects(self, testbot):
         testbot.push_message('!keystone listprojects')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "user-smcquaid" in response
 
     def test_keystone_listroles(self, testbot):
         testbot.push_message('!keystone listroles')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "Member" in response
         assert "ProjectAdmin" in response
 
@@ -111,11 +112,21 @@ class TestGDOpenstack(object):
         assert "dxstarr" not in response
         assert "smcquaid" in response
 
+        # @TODO need to add test for listprojectusers by id
+        testbot.push_message('!keystone listprojectusers 2e1d7ae656eb406891488643cd4ef922')
+        response = testbot.pop_message(timeout=10)
+        assert "dxstarr" not in response
+        assert "smcquaid" in response
+
+
     def test_keystone_removeadminfromproject(self, testbot):
         #Included as above
         pass
 
     def test_keystone_createproject(self, testbot):
+        pass
+
+    def test_ad_clearhostname(self, testbot):
         pass
 
     def test_nova_addadmintoserver(self, testbot):
@@ -131,7 +142,7 @@ class TestGDOpenstack(object):
 
         # Check state
         testbot.push_message('!nova getusers smcquaid-dev1')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "dxstarr" in response
 
         # Clean up
@@ -141,7 +152,7 @@ class TestGDOpenstack(object):
 
         # Check base state
         testbot.push_message('!nova getusers smcquaid-dev1')
-        response = testbot.pop_message()
+        response = testbot.pop_message(timeout=10)
         assert "dxstarr" not in response
 
     def test_nova_removeadminfromserver(self, testbot):
