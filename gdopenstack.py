@@ -133,8 +133,8 @@ class GDOpenstack(BotPlugin):
         self.novaclient.servers.set_meta_item(server=server_obj, key=metadata_key, value=item)
 
     # Nova commands
-    @arg_botcmd('--project_id', dest='project_id', type=str, default=None)
-    @arg_botcmd('--project_name', dest='project_name', type=str, default=None)
+    @arg_botcmd('--project-id', dest='project_id', type=str, default=None)
+    @arg_botcmd('--project-name', dest='project_name', type=str, default=None)
     def nova_listservers(self, mess, project_id=None, project_name=None):
         """ Gets all servers of a given project"""
 
@@ -152,8 +152,10 @@ class GDOpenstack(BotPlugin):
                 output.append(server.name)
 
         return output if output else "Looks like I could not find anything. Sorry."
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+
+
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_getip(self, msg, server_name=None, server_id=None):
         """ Returns the ip(s) of a given server. """
 
@@ -179,10 +181,10 @@ class GDOpenstack(BotPlugin):
             return str(output)
         else:
             # returned exactly 1 server
-            return self._format_network(server)
+            return self._format_network(servers[0])
 
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_getmetadata(self, msg, server_id=None, server_name=None):
         """ Returns the metadata of a given server. """
 
@@ -208,10 +210,10 @@ class GDOpenstack(BotPlugin):
             return str(output)
         else:
             # returned exactly 1 server
-            return self._format_network(server)
+            return servers[0].metadata
 
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_getcreator(self, msg, server_id=None, server_name=None):
         """ Gets creator of server from metadata. """
 
@@ -237,10 +239,10 @@ class GDOpenstack(BotPlugin):
             return str(output)
         else:
             # returned exactly 1 server
-            return self._format_network(server)
+            return servers[0].metadata['created_by']
 
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_getusers(self, msg, server_id=None, server_name=None):
         """ Gets list of all users/groups of server. """
 
@@ -266,7 +268,7 @@ class GDOpenstack(BotPlugin):
             return str(output)
         else:
             # returned exactly 1 server
-            return self._format_network(server)
+            return self._getusers(servers[0].metadata)
 
 
     def _keystone_listroles(self):
@@ -291,8 +293,8 @@ class GDOpenstack(BotPlugin):
 
         return output
 
-    @arg_botcmd('--project_id', dest='project_id', type=str, default=None)
-    @arg_botcmd('--project_name', dest='project_name', type=str, default=None)
+    @arg_botcmd('--project-id', dest='project_id', type=str, default=None)
+    @arg_botcmd('--project-name', dest='project_name', type=str, default=None)
     def keystone_listprojectusers(self, msg, project_id=None, project_name=None):
         """ Gets list of users of project. EX: !keystone listprojects <name>"""
         # Need to make sure we have at least one param given
@@ -312,9 +314,9 @@ class GDOpenstack(BotPlugin):
         return "Well... it looks like I am on fire"
 
     @botcmd(admin_only=True)
-    @arg_botcmd('--user_name', type=str)
-    @arg_botcmd('--project_id', dest='project_id', type=str, default=None)
-    @arg_botcmd('--project_name', dest='project_name', type=str, default=None)
+    @arg_botcmd('--user-name', type=str)
+    @arg_botcmd('--project-id', dest='project_id', type=str, default=None)
+    @arg_botcmd('--project-name', dest='project_name', type=str, default=None)
     def keystone_addadmintoproject(self, msg, user_name=None, project_id=None, project_name=None):
         """ Add user to project. EX: !keystone addadmintoproject <username> <projectname> """
         # Need to make sure we have at least one param given
@@ -345,9 +347,9 @@ class GDOpenstack(BotPlugin):
 
 
     @botcmd(admin_only=True)
-    @arg_botcmd('--user_name', type=str)
-    @arg_botcmd('--project_id', dest='project_id', type=str, default=None)
-    @arg_botcmd('--project_name', dest='project_name', type=str, default=None)
+    @arg_botcmd('--user-name', type=str)
+    @arg_botcmd('--project-id', dest='project_id', type=str, default=None)
+    @arg_botcmd('--project-name', dest='project_name', type=str, default=None)
     def keystone_removeadminfromproject(self, msg, user_name=None, project_id=None, project_name=None):
         """ Remove user from project."""
 
@@ -379,9 +381,9 @@ class GDOpenstack(BotPlugin):
 
 
     @botcmd(admin_only=True)
-    @arg_botcmd('--user_name', type=str)
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+    @arg_botcmd('--user-name', type=str)
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_addadmintoserver(self, msg, user_name=None, server_id=None, server_name=None):
         """ Add user to server. """
 
@@ -435,9 +437,9 @@ class GDOpenstack(BotPlugin):
 
 
     @botcmd(admin_only=True)
-    @arg_botcmd('--user_name', type=str)
-    @arg_botcmd('--server_id', dest='server_id', type=str, default=None)
-    @arg_botcmd('--server_name', dest='server_name', type=str, default=None)
+    @arg_botcmd('--user-name', type=str)
+    @arg_botcmd('--server-id', dest='server_id', type=str, default=None)
+    @arg_botcmd('--server-name', dest='server_name', type=str, default=None)
     def nova_removeadminfromserver(self, msg, user_name=None, server_id=None, server_name=None):
         """ Remove user from server. """
 
@@ -483,6 +485,38 @@ class GDOpenstack(BotPlugin):
         return "Well... it looks like I am on fire"
 
 
+    def _find_server_by_ip(self, server_ip):
+        found_servers = []
+        for server in self.serverlist:
+            if server_ip in str(server.networks.items()):
+                found_servers.append(server)
+                self.log.error("Server name: %s" % (server.name) )
+
+        return found_servers
+
+    def _format_server_print(self, server):
+        return "Name: %s, UUID: %s" % (server.name, server.id)
+
+    @arg_botcmd('--server-ip', type=str)
+    def nova_findserverbyip(self, msg, server_ip=None):
+        # Need to make sure we have at least one param given
+        if (not server_ip):
+            return "Too few arguments given"
+
+        # Maybe input was a name...
+        servers = self._find_server_by_ip(server_ip)
+        if not servers:
+            return "Sorry, we could not find a server with that static IP address"
+
+        if servers > 1:
+            output = {}
+            for server in servers:
+                # @TODO This is somewhat undesirable. Add interactivity
+                output[server.id] = self._format_server_print(server)
+            return str(output)
+        else:
+            # returned exactly 1 server
+            return self._format_server_print(servers[0])
 
     # @botcmd(split_args_with=None)
     # def keystone_createproject(self, msg, args):

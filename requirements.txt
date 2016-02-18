@@ -1,4 +1,5 @@
 python-novaclient==2.31.0
+python-keystoneclient
 errbot
 coverage
 common==0.1.1
