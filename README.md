@@ -16,6 +16,7 @@ This plugin allows openstack admins to administer openstack and get trivial info
     * Dockerize norm
     * Setup unit testing framework
     * Setup standardized plugin showing all features simply.
+    * Watch logs on specific servers
 
 # Future plugins, commands, and features
 
@@ -30,9 +31,10 @@ These will run puppet on the specified environment. Protections will need to be 
 ## err-gd-deploy
 These are idealized commands of which we will not implement halfway. Works or nothing.
 
-    * `!deploy <product> <environment>`  # Deploy product
-    * `!deploy rollback <product> <env> [--version <version>]
-    * `!redalert [<env>]` Procedures + notifications + automation for when something breaks.
+    * `!devstack up [--version <version>] [--users <users>]  # Spin up devstack for developers
+    * `!deploy <product> <environment>`  # Deploy product to environment
+    * `!deploy rollback <product> <env> [--version <version>]  # Rollback to specific version
+    * `!redalert [<env>]`  # Procedures + notifications + automation for when something breaks.
     * `!monitorincident <incident_id> <time_delay>`  # Poll for incident status every X seconds
 
 ## err-gd-patching
@@ -81,3 +83,4 @@ These are idealized commands of which we will not implement halfway. Works or no
     * `!nova reboot <vmID>`  # Reboot vm
     * `!nova nuke|delete|forcedelete <vmID>`  # Destroy vm no matter what
     * `!openstack setenv <env>`  # Allow norm to switch environments temporarily.
+    * `!openstack debugip <ip>`  # Look for the route, look for the allowed address pair on the vm
