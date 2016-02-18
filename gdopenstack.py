@@ -42,14 +42,18 @@ class GDOpenstack(BotPlugin):
         # DEBUG: Cache refreshed
         return True
 
-    def _get_nova_client(self):
+    def _get_nova_client(self, project_name=None):
         """ This converts env vars to local vasr & auths with OS """
         credentials = {}
         credentials['version'] = '2'
         credentials['username'] = os.environ['OS_USERNAME']
         credentials['api_key'] = os.environ['OS_PASSWORD']
         credentials['auth_url'] = os.environ['OS_AUTH_URL']
-        credentials['project_id'] = os.environ['OS_TENANT_NAME']
+        # not this is not a mis-match, novaclient is stupid
+        if project_name:
+            credentials['project_id'] = project_name
+        else:
+            credentials['project_id'] = os.environ['OS_TENANT_NAME']
 
         return nclient(**credentials)
 
@@ -107,20 +111,20 @@ class GDOpenstack(BotPlugin):
     def _find_tenant_by_name(self, name):
         # Assuming tenant name is unique
 
-        for tentant in self.tenantlist:
-            if name == tentant.name:
-                return tentant
+        for tenant in self.tenantlist:
+            if name == tenant.name:
+                return tenant
 
-        self.log.info("Tentant name: " + name + " was not found")
+        self.log.info("Tenant name: " + name + " was not found")
         # TODO Throw error
         return
 
     def _find_tenant_by_id(self, id):
-        for tentant in self.tenantlist:
-            if id == tentant.id:
-                return tentant
+        for tenant in self.tenantlist:
+            if id == tenant.id:
+                return tenant
 
-        self.log.info("Tentant id: " + id + " was not found")
+        self.log.info("Tenant id: " + id + " was not found")
         # TODO Throw error
         return
 
@@ -135,21 +139,31 @@ class GDOpenstack(BotPlugin):
     # Nova commands
     @arg_botcmd('--project-id', dest='project_id', type=str, default=None)
     @arg_botcmd('--project-name', dest='project_name', type=str, default=None)
-    def nova_listservers(self, mess, project_id=None, project_name=None):
+    def keystone_listservers(self, mess, project_id=None, project_name=None):
         """ Gets all servers of a given project"""
 
         # Need to make sure we have at least one param given
         if (not project_name) and (not project_id):
             return "Too few arguments given"
 
-        # Convert id to name if necessary
+        # Get tenant from name
+        if project_name:
+            tenant = self._find_tenant_by_name(project_name)
+            if not tenant:
+                return "Sorry I could not find project_name: %s" % project_name
+
+        # Get tenant from id
         if project_id:
-            project_name = self._find_tenant_by_id(project_id).name
+            tenant = self._find_tenant_by_id(project_id)
+            if not tenant:
+                return "Sorry I could not find project_id: %s" % project_id
+
+        novaclient = self._get_nova_client(tenant.name)
+        serverlist = novaclient.servers.list()
 
         output = []
-        for server in self.serverlist:
-            if server.metadata.get('project_name') == project_name:
-                output.append(server.name)
+        for server in serverlist:
+            output.append(server.name)
 
         return output if output else "Looks like I could not find anything. Sorry."
 

@@ -9,16 +9,16 @@ from novaclient.client import Client
 class TestGDOpenstack(object):
     extra_plugin_dir = '.'
 
-    def test_nova_listservers(self, testbot):
-        testbot.push_message('!nova listservers --project-id f48e57277a7a484290ba9afdc49a21a9')
+    def test_keystone_listservers(self, testbot):
+        testbot.push_message('!keystone listservers --project-id f48e57277a7a484290ba9afdc49a21a9')
         response = testbot.pop_message(timeout=30)
         assert "smcquaid-dev" in response
 
-        testbot.push_message('!nova listservers --project-name openstack')
+        testbot.push_message('!keystone listservers --project-name openstack')
         response = testbot.pop_message(timeout=1)
         assert "smcquaid-dev" in response
 
-        testbot.push_message('!nova listservers')
+        testbot.push_message('!keystone listservers')
         response = testbot.pop_message(timeout=1)
         assert "Too few arguments given" in response
 
